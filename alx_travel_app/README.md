@@ -1,6 +1,6 @@
-# ALX Travel App - Backend (0x00)
+# ALX Travel App - Backend (0x01)
 
-A comprehensive Django REST API for a travel booking platform that allows users to search, book, and review accommodations worldwide.
+A comprehensive Django REST API for a travel booking platform that allows users to search, book, and review accommodations worldwide. This version includes fully functional CRUD API endpoints with Swagger documentation.
 
 ## 🚀 Features
 
@@ -182,15 +182,218 @@ python manage.py test listings
 
 ## 📝 API Endpoints
 
-- `GET /api/v1/listings/` - List all listings
-- `POST /api/v1/listings/` - Create a new listing
-- `GET /api/v1/listings/{id}/` - Get specific listing
-- `PUT /api/v1/listings/{id}/` - Update listing
-- `DELETE /api/v1/listings/{id}/` - Delete listing
-- `GET /api/v1/bookings/` - List bookings
-- `POST /api/v1/bookings/` - Create booking
-- `GET /api/v1/reviews/` - List reviews
-- `POST /api/v1/reviews/` - Create review
+### Listings API
+
+#### Standard CRUD Operations
+- **GET** `/api/listings/` - List all listings
+  - Query Parameters: `location`, `is_available`, `bedrooms`, `bathrooms`, `search`, `ordering`
+  - Example: `/api/listings/?location=Paris&bedrooms=2&ordering=-price_per_night`
+
+- **POST** `/api/listings/` - Create a new listing (Authentication required)
+  - Request Body:
+    ```json
+    {
+      "title": "Cozy Apartment in Paris",
+      "description": "Beautiful apartment with Eiffel Tower view",
+      "location": "Paris, France",
+      "price_per_night": 150.00,
+      "bedrooms": 2,
+      "bathrooms": 1,
+      "max_guests": 4,
+      "is_available": true
+    }
+    ```
+
+- **GET** `/api/listings/{id}/` - Get specific listing details
+- **PUT** `/api/listings/{id}/` - Update entire listing (Authentication required)
+- **PATCH** `/api/listings/{id}/` - Partially update listing (Authentication required)
+- **DELETE** `/api/listings/{id}/` - Delete listing (Authentication required)
+
+#### Custom Actions
+- **GET** `/api/listings/available/` - Get only available listings
+- **GET** `/api/listings/{id}/bookings/` - Get all bookings for a specific listing
+
+### Bookings API
+
+#### Standard CRUD Operations
+- **GET** `/api/bookings/` - List all bookings (filtered by authenticated user)
+  - Query Parameters: `status`, `listing`, `ordering`
+  - Example: `/api/bookings/?status=confirmed&ordering=-created_at`
+
+- **POST** `/api/bookings/` - Create a new booking (Authentication required)
+  - Request Body:
+    ```json
+    {
+      "listing": "uuid-of-listing",
+      "check_in_date": "2025-10-15",
+      "check_out_date": "2025-10-20",
+      "number_of_guests": 2,
+      "total_price": 750.00
+    }
+    ```
+
+- **GET** `/api/bookings/{id}/` - Get specific booking details
+- **PUT** `/api/bookings/{id}/` - Update entire booking
+- **PATCH** `/api/bookings/{id}/` - Partially update booking
+- **DELETE** `/api/bookings/{id}/` - Cancel/delete booking
+
+#### Custom Actions
+- **POST** `/api/bookings/{id}/cancel/` - Cancel a booking
+- **POST** `/api/bookings/{id}/confirm/` - Confirm a booking (Host only)
+- **GET** `/api/bookings/my_bookings/` - Get current user's bookings
+
+## 🧪 Testing API Endpoints with Postman
+
+### Setup
+1. Download and install [Postman](https://www.postman.com/downloads/)
+2. Start your Django development server: `python manage.py runserver`
+3. Create a superuser if you haven't: `python manage.py createsuperuser`
+
+### Testing Workflow
+
+#### 1. Test GET Listings
+```
+Method: GET
+URL: http://127.0.0.1:8000/api/listings/
+Headers: None required
+Expected: 200 OK with list of listings
+```
+
+#### 2. Test POST Create Listing (Requires Authentication)
+```
+Method: POST
+URL: http://127.0.0.1:8000/api/listings/
+Headers: 
+  - Content-Type: application/json
+Auth: Basic Auth (username/password from createsuperuser)
+Body (raw JSON):
+{
+  "title": "Luxury Villa in Bali",
+  "description": "Amazing villa with private pool",
+  "location": "Bali, Indonesia",
+  "price_per_night": 250.00,
+  "bedrooms": 3,
+  "bathrooms": 2,
+  "max_guests": 6,
+  "is_available": true
+}
+Expected: 201 Created
+```
+
+#### 3. Test GET Single Listing
+```
+Method: GET
+URL: http://127.0.0.1:8000/api/listings/{listing_id}/
+Expected: 200 OK with listing details
+```
+
+#### 4. Test PUT Update Listing
+```
+Method: PUT
+URL: http://127.0.0.1:8000/api/listings/{listing_id}/
+Auth: Basic Auth
+Body: Complete listing object with updates
+Expected: 200 OK
+```
+
+#### 5. Test PATCH Partial Update
+```
+Method: PATCH
+URL: http://127.0.0.1:8000/api/listings/{listing_id}/
+Auth: Basic Auth
+Body (raw JSON):
+{
+  "price_per_night": 275.00,
+  "is_available": false
+}
+Expected: 200 OK
+```
+
+#### 6. Test POST Create Booking
+```
+Method: POST
+URL: http://127.0.0.1:8000/api/bookings/
+Auth: Basic Auth
+Body (raw JSON):
+{
+  "listing": "{listing_uuid}",
+  "check_in_date": "2025-11-01",
+  "check_out_date": "2025-11-05",
+  "number_of_guests": 2,
+  "total_price": 1000.00
+}
+Expected: 201 Created
+```
+
+#### 7. Test Custom Actions
+```
+# Cancel Booking
+Method: POST
+URL: http://127.0.0.1:8000/api/bookings/{booking_id}/cancel/
+Auth: Basic Auth
+Expected: 200 OK
+
+# Get Available Listings
+Method: GET
+URL: http://127.0.0.1:8000/api/listings/available/
+Expected: 200 OK
+
+# Get My Bookings
+Method: GET
+URL: http://127.0.0.1:8000/api/bookings/my_bookings/
+Auth: Basic Auth
+Expected: 200 OK
+```
+
+#### 8. Test Filtering and Search
+```
+# Filter by location
+GET http://127.0.0.1:8000/api/listings/?location=Paris
+
+# Search in title/description
+GET http://127.0.0.1:8000/api/listings/?search=luxury
+
+# Order by price
+GET http://127.0.0.1:8000/api/listings/?ordering=price_per_night
+
+# Combine filters
+GET http://127.0.0.1:8000/api/listings/?location=Bali&bedrooms=3&ordering=-price_per_night
+```
+
+#### 9. Test DELETE
+```
+Method: DELETE
+URL: http://127.0.0.1:8000/api/listings/{listing_id}/
+Auth: Basic Auth
+Expected: 204 No Content
+```
+
+### Expected Response Codes
+- **200 OK**: Successful GET, PUT, PATCH
+- **201 Created**: Successful POST
+- **204 No Content**: Successful DELETE
+- **400 Bad Request**: Validation errors
+- **401 Unauthorized**: Authentication required
+- **403 Forbidden**: Permission denied
+- **404 Not Found**: Resource doesn't exist
+
+### Testing Error Scenarios
+
+1. **Missing Required Fields**
+   - Try creating a listing without required fields
+   - Expected: 400 Bad Request with error details
+
+2. **Invalid Data Types**
+   - Send string for numeric field
+   - Expected: 400 Bad Request
+
+3. **Unauthorized Access**
+   - Try POST/PUT/DELETE without authentication
+   - Expected: 401 Unauthorized
+
+4. **Invalid UUID**
+   - Use invalid listing_id
+   - Expected: 404 Not Found
 
 ## 🐛 Troubleshooting
 
